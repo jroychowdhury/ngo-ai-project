@@ -8,7 +8,6 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-# Only using Groq (clean setup)
 PROVIDER = "groq"
 
 
@@ -30,14 +29,12 @@ def generate_json(prompt: str, system_prompt: str = "") -> dict:
 
     raw = generate_text(prompt, full_system)
 
-    # Clean markdown formatting if present
     cleaned = re.sub(r"```(?:json)?|```", "", raw).strip()
 
     try:
         return json.loads(cleaned)
 
     except json.JSONDecodeError:
-        # Retry with fix prompt
         fix_prompt = f"Fix this JSON and return ONLY valid JSON:\n{cleaned}"
 
         fixed = generate_text(fix_prompt, "Return ONLY valid JSON.")
@@ -47,14 +44,15 @@ def generate_json(prompt: str, system_prompt: str = "") -> dict:
 
 
 # ─────────────────────────────────────────
-# GEMINI SAFE SUMMARY (OPTIONAL)
+# GEMINI SAFE SUMMARY (FIXED)
 # ─────────────────────────────────────────
 
 def gemini_summary_safe(data: dict) -> str:
     try:
         from google import genai
 
-        api_key = os.getenv("AIzaSyBxHlSzemq3jOxb7pw47IR8ilTj939y2PU")
+        # ✅ CORRECT WAY
+        api_key = os.getenv("GEMINI_API_KEY")
 
         if not api_key:
             return "Gemini API key not set"
