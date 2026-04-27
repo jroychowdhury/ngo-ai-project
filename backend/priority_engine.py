@@ -30,16 +30,16 @@ SEVERITY_KEYWORDS = {
     "urgent": 5,
 }
 
+
 def compute_keyword_score(report: Dict[str, Any]) -> float:
     """
-    Scans summary + needs for severity keywords.
+    Scans summary + needs + location for severity keywords.
     Returns score 0-10.
     """
-    # Build a single searchable string from relevant fields
     text_blob = " ".join([
-        str(report.get("summary", "")),
-        str(report.get("location", "")),
-        " ".join(report.get("needs", [])),
+        str(report.get("summary") or ""),
+        str(report.get("location") or ""),
+        " ".join(report.get("needs") or []),   # FIX: handles None needs without crash
     ]).lower()
 
     total = 0
@@ -47,25 +47,22 @@ def compute_keyword_score(report: Dict[str, Any]) -> float:
         if keyword in text_blob:
             total += weight
 
-    # Cap at 10
     return min(total, 10)
 
 
 def compute_people_score(report: Dict[str, Any]) -> float:
     """
     Normalizes affected_people to 0-10 scale.
-    Assumes 1000+ people = maximum score.
+    10,000+ people = maximum score.
     """
     raw = report.get("affected_people", 0)
 
-    # Handle None or non-integer gracefully
     try:
-        count = int(raw)
+        count = int(float(raw or 0))           # FIX: handles "250.0" and None
     except (TypeError, ValueError):
         count = 0
 
-    # Normalize: 0-1000 mapped to 0-10
-    return min(count / 100, 10)
+    return min(count / 1000, 10)              # FIX: 1000 people ≠ 10000 people, scale raised
 
 
 def compute_urgency_score(report: Dict[str, Any]) -> float:
@@ -76,7 +73,7 @@ def compute_urgency_score(report: Dict[str, Any]) -> float:
     raw = report.get("urgency", 5)
     try:
         score = float(raw)
-        return max(1.0, min(score, 10.0))  # Clamp between 1-10
+        return max(1.0, min(score, 10.0))
     except (TypeError, ValueError):
         return 5.0
 
@@ -84,7 +81,7 @@ def compute_urgency_score(report: Dict[str, Any]) -> float:
 def compute_priority_score(report: Dict[str, Any]) -> float:
     """
     Master scoring function.
-    Combines urgency, people count, and keyword severity.
+    Combines urgency (50%), people count (30%), keyword severity (20%).
     """
     urgency = compute_urgency_score(report)
     people = compute_people_score(report)
@@ -96,7 +93,7 @@ def compute_priority_score(report: Dict[str, Any]) -> float:
 
 def rank_reports(reports: List[Dict[str, Any]], top_n: int = 3) -> List[Dict[str, Any]]:
     """
-    Takes raw reports list, attaches priority_score to each,
+    Attaches priority_score + score_breakdown to each report,
     sorts descending, returns top_n.
     """
     if not reports:
@@ -113,10 +110,8 @@ def rank_reports(reports: List[Dict[str, Any]], top_n: int = 3) -> List[Dict[str
         }
         scored.append(enriched)
 
-    # Sort by priority_score descending
     scored.sort(key=lambda r: r["priority_score"], reverse=True)
 
-    # Add rank field
     for i, report in enumerate(scored):
         report["rank"] = i + 1
 
