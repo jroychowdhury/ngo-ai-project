@@ -124,3 +124,7 @@ async def health():
         "provider": os.getenv("AI_PROVIDER", "groq"),
         "ai_provider_active": os.getenv("AI_PROVIDER", "groq").upper()
     }
+
+@app.get("/")
+async def root():
+    return {"status": "ok", "message": "NGO AI Backend is running"}
