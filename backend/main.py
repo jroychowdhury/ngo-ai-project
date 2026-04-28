@@ -13,16 +13,11 @@ app = FastAPI(title="NGO Resource Allocator")
 # ── CORS ──────────────────────────────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "https://*.vercel.app",
-        "https://*.netlify.app",
-    ],                          # FIX: removed "*" — wildcard + credentials=True blocks all browser requests
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 # ── Init DB ───────────────────────────────────────────────────────────
 init_db()
 
